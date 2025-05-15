@@ -650,6 +650,9 @@ void PHPCoroutine::on_close(void *arg) {
     if (ctx->on_close) {
         (*ctx->on_close)(ctx);
     }
+
+    // Mark memory region with special byte pattern to detect use-after-free
+    memset(ctx, 0xAA, sizeof(PHPContext));
     efree(ctx);
 }
 
