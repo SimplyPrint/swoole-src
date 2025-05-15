@@ -645,16 +645,21 @@ void PHPCoroutine::on_resume(void *arg) {
     swoole_trace_log(SW_TRACE_COROUTINE, "from cid=%ld to cid=%ld", Coroutine::get_current_cid(), ctx->co->get_cid());
 }
 
+#pragma GCC push_options
+#pragma GCC optimize("O0")
 void PHPCoroutine::on_close(void *arg) {
     PHPContext *ctx = (PHPContext *) arg;
     if (ctx->on_close) {
         (*ctx->on_close)(ctx);
     }
-
     // Mark memory region with special byte pattern to detect use-after-free
-    memset(ctx, 0xAA, sizeof(PHPContext));
+    // std::memset_explicit(ctx, 0xAA, sizeof(PHPContext));
+    volatile char* ctx_ptr = reinterpret_cast<volatile char *>(ctx);
+    memset((void*)ctx_ptr, 0xAA, sizeof(PHPContext));
+
     efree(ctx);
 }
+#pragma GCC pop_options
 
 void PHPCoroutine::destroy_context(PHPContext *ctx) {
     PHPContext *origin_ctx = get_origin_context(ctx);
